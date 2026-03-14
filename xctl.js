@@ -18,6 +18,7 @@ Commands:
   mentions                       Mentions timeline (stub; needs OAuth 2.0 user context)
   tweet <text>                   Post a tweet (OAuth 1.0a)
   reply <tweet-id> <text>        Reply to a tweet (OAuth 1.0a)
+  delete <tweet-id-or-url>       Delete a tweet (OAuth 1.0a)
   whoami                         Show authenticated user info
 
 Global flags:
@@ -775,6 +776,27 @@ async function cmdReply(args, format) {
   console.log(`In reply to: ${tweetId}`);
 }
 
+async function cmdDelete(args, format) {
+  if (!args[0]) {
+    throw new Error('Usage: xctl delete <tweet-id-or-url>');
+  }
+
+  const tweetId = extractTweetId(args[0]);
+
+  const response = await apiRequestOAuth1('DELETE', `/2/tweets/${tweetId}`);
+
+  if (format === 'json') {
+    console.log(JSON.stringify(response, null, 2));
+    return;
+  }
+
+  if (response?.data?.deleted === true) {
+    console.log(`Deleted tweet ${tweetId}`);
+  } else {
+    throw new Error(`Unexpected response: ${JSON.stringify(response)}`);
+  }
+}
+
 async function cmdWhoami(format) {
   const query = {
     'user.fields': 'created_at,description,location,public_metrics,url,verified',
@@ -864,6 +886,9 @@ async function main() {
       break;
     case 'reply':
       await cmdReply(args, format);
+      break;
+    case 'delete':
+      await cmdDelete(args, format);
       break;
     case 'whoami':
       await cmdWhoami(format);
