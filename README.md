@@ -7,7 +7,7 @@ Single-file Node.js CLI for X/Twitter API v2. Zero dependencies. Just copy and r
 - Search recent tweets
 - Read individual tweets (with fallback to markdown.new for articles)
 - View user profiles and timelines
-- Post tweets and replies (OAuth 1.0a)
+- Post tweets, replies, retweets, and quotes (OAuth 1.0a)
 - Check authenticated user info
 - Output as pretty-print, plain text, or JSON
 
@@ -24,7 +24,7 @@ Set the following environment variables:
 # Required for read operations (search, read, user, whoami)
 export X_BEARER_TOKEN="your_bearer_token"
 
-# Required for write operations (tweet, reply) and OAuth whoami
+# Required for write operations (tweet, reply, retweet, quote, delete) and OAuth whoami
 export X_CONSUMER_KEY="your_consumer_key"
 export X_CONSUMER_SECRET="your_consumer_secret"
 export X_ACCESS_TOKEN="your_access_token"
@@ -112,6 +112,24 @@ Reply to a tweet. Requires OAuth 1.0a credentials.
 xctl reply 1234567890123456789 "Great point!"
 ```
 
+#### `retweet <tweet-id-or-url>`
+
+Retweet a tweet by ID or full X URL. Requires OAuth 1.0a credentials.
+
+```bash
+xctl retweet 1234567890123456789
+xctl retweet https://x.com/user/status/1234567890123456789
+```
+
+#### `quote <tweet-id-or-url> "text"`
+
+Quote a tweet with your own text. Requires OAuth 1.0a credentials.
+
+```bash
+xctl quote 1234567890123456789 "Worth reading."
+xctl quote https://x.com/user/status/1234567890123456789 "Important context here."
+```
+
 #### `whoami`
 
 Show the authenticated user. Uses OAuth 1.0a if credentials are set, falls back to Bearer token.
@@ -154,6 +172,12 @@ xctl user pmarca -n 20
 
 # Post a tweet
 xctl tweet "Built something cool with xctl today"
+
+# Retweet by URL
+xctl retweet https://x.com/user/status/1234567890
+
+# Quote a tweet
+xctl quote 1234567890123456789 "This is a useful thread."
 
 # Get raw JSON for scripting
 xctl search "openai" --json | jq '.tweets[].text'

@@ -18,6 +18,8 @@ Commands:
   mentions                       Mentions timeline (stub; needs OAuth 2.0 user context)
   tweet <text>                   Post a tweet (OAuth 1.0a)
   reply <tweet-id> <text>        Reply to a tweet (OAuth 1.0a)
+  retweet <tweet-id-or-url>      Retweet a tweet (OAuth 1.0a)
+  quote <tweet-id-or-url> "text" Quote a tweet with your text (OAuth 1.0a)
   delete <tweet-id-or-url>       Delete a tweet (OAuth 1.0a)
   whoami                         Show authenticated user info
 
@@ -776,6 +778,77 @@ async function cmdReply(args, format) {
   console.log(`In reply to: ${tweetId}`);
 }
 
+async function getAuthenticatedUserIdOAuth1() {
+  const response = await apiRequestOAuth1('GET', '/2/users/me', {
+    query: {
+      'user.fields': 'id',
+    },
+  });
+
+  const userId = response?.data?.id;
+  if (!userId) {
+    throw new Error('Could not determine authenticated user ID');
+  }
+  return userId;
+}
+
+async function cmdRetweet(args, format) {
+  if (!args[0]) {
+    throw new Error('Usage: xctl retweet <tweet-id-or-url>');
+  }
+
+  const tweetId = extractTweetId(args[0]);
+  const userId = await getAuthenticatedUserIdOAuth1();
+
+  const response = await apiRequestOAuth1('POST', `/2/users/${userId}/retweets`, {
+    body: {
+      tweet_id: tweetId,
+    },
+  });
+
+  if (format === 'json') {
+    console.log(JSON.stringify(response, null, 2));
+    return;
+  }
+
+  if (response?.data?.retweeted !== true) {
+    throw new Error(`Unexpected response: ${JSON.stringify(response)}`);
+  }
+
+  console.log(`Retweeted: ${tweetId}`);
+  console.log(`URL: https://x.com/i/web/status/${tweetId}`);
+}
+
+async function cmdQuote(args, format) {
+  if (args.length < 2) {
+    throw new Error('Usage: xctl quote <tweet-id-or-url> "text"');
+  }
+
+  const tweetId = extractTweetId(args[0]);
+  const text = args.slice(1).join(' ').trim();
+
+  if (!text) {
+    throw new Error('Usage: xctl quote <tweet-id-or-url> "text"');
+  }
+
+  const response = await apiRequestOAuth1('POST', '/2/tweets', {
+    body: {
+      text,
+      quote_tweet_id: tweetId,
+    },
+  });
+
+  if (format === 'json') {
+    console.log(JSON.stringify(response, null, 2));
+    return;
+  }
+
+  const id = response?.data?.id || '(unknown)';
+  console.log(`Quote posted: ${id}`);
+  console.log(`Quoted tweet: ${tweetId}`);
+  console.log(`URL: https://x.com/i/web/status/${id}`);
+}
+
 async function cmdDelete(args, format) {
   if (!args[0]) {
     throw new Error('Usage: xctl delete <tweet-id-or-url>');
@@ -886,6 +959,12 @@ async function main() {
       break;
     case 'reply':
       await cmdReply(args, format);
+      break;
+    case 'retweet':
+      await cmdRetweet(args, format);
+      break;
+    case 'quote':
+      await cmdQuote(args, format);
       break;
     case 'delete':
       await cmdDelete(args, format);
